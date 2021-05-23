@@ -8,9 +8,17 @@ class AccountProfile(models.Model):
        return
      
 class Payment(models.Model):
+    pass;
 
 
 class Item(models.Model):
+    name_of_item = models.CharField(max_length=1000)
+
+    def _str_(self):
+        return self.name_of_item
 
 
 class Coupon(models.Model):
+    pass;
+
+
