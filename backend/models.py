@@ -1,6 +1,9 @@
 from django.db import models
 from django.conf import settings
 from django.db.models import Sum;
+from django_countries.fields import CountryField
+from django_countries.widgets import CountrySelectWidget
+
 
 MAILING_MODES = (
     ('S', 'Shipping'),
@@ -70,9 +73,22 @@ class Coupon(models.Model):
         return self.code
 
 
-
 class UserGroup(models.Model):
+    account_name = models.CharField(max_length=100)
+    num_of_followers = models.IntegerField(default=10)
+    
+    def _str_(self):
+        return self.account_name
     pass
+
+
+class FriendGroup(models.Model):
+    friend_name = models.CharField(max_length=100)
+    link_to_account = models.URLField(max_length=200)
+    key = models.ForeignKey(UserGroup)
+
+
+
 
 class Payment(models.Model):
     pass
