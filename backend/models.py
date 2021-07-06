@@ -3,12 +3,14 @@ from django.conf import settings
 from django.db.models import Sum;
 from django_countries.fields import CountryField
 from django_countries.widgets import CountrySelectWidget
+from django.db.models.signals import post_save
 
 
 MAILING_MODES = (
     ('S', 'Shipping'),
     ('B', 'Billing')
 )
+
 
 
 class AccountProfile(models.Model):
@@ -89,8 +91,28 @@ class FriendGroup(models.Model):
 
 
 
-
 class Payment(models.Model):
-    pass
+    stripe_key = models.CharField(max_length=300)
+    user_act = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
+
+    value = models.FloatField()
+
+    def _str_(self):
+        return self.user_act.username
+
+
+
+class sendReq(AccountProfile):
+    def send(inst, created):
+        if created:
+            userprofile = AccountProfile.objects.create(user=inst)
+
+
+
+post_save.connect(sendReq.send, sender=settings.AUTH_USER_MODEL)
+    
+
+
+
 
 
