@@ -4,6 +4,13 @@ from django.db.models import Sum;
 from django_countries.fields import CountryField
 from django_countries.widgets import CountrySelectWidget
 from django.db.models.signals import post_save
+import enum
+import math
+
+class Status(enum.Enum):
+    Nonexistent = 0
+    Pending = 1
+    Active = 2
 
 
 MAILING_MODES = (
@@ -16,6 +23,7 @@ MAILING_MODES = (
 class AccountProfile(models.Model):
     my_user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     pay_with_click = models.BooleanField(default=False)
+    stripe_customer_id = models.CharField(max_length=100 blank=True null=True)
 
     def _str_(self):
        return self.my_user
@@ -26,6 +34,11 @@ class Item(models.Model):
     price_of_item = models.FloatField()
     number_of_given_item = models.IntegerField(default = 1)
     discount = models.FloatField(choices=CATEGORY_CHOICES, max_length=3)
+
+    slug = models.SlugField()
+    label = models.CharField(choices=LABEL_CHOICES, max_length=1)
+    text_about_item = models.TextField()
+    image = models.ImageField()
 
     def _str_(self):
         return self.name_of_item
@@ -39,6 +52,10 @@ class Item(models.Model):
         addr = "backend:remove-from-cart"
         rev_args = {'slug': self.slug}
         return reverse(addr, rev_args)
+    
+    def get_link(self):
+        rev_args = {'slug': self.slug}
+        return reverse("core:product", rev_args)
     
 
 
@@ -66,6 +83,65 @@ class BuyItem(models.Model):
         return f"{self.number_of_given_item} of {self.item.name_of_item}"
     
 
+class MakeOrder(models.Model):
+    items = models.ManyToManyField(BuyItem)
+    user_account = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    item_code = models.CharField(max_lengtH=1000, blank=True, null=True)
+
+    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, blank=True, null=True)
+    shipping_date = models.DateTimeField(BuyItem)
+    order_date = models.DateTimeField()
+
+    shipping_address = models.ForeignKey('Address', related_name='shipping_address', on_delete=models.SET_NULL, blank=True, null=True)
+    billing_address = models.ForeignKey('Address', related_name='billing_address', on_delete=models.SET_NULL, blank=True, null=True)
+
+    payment = models.ForeignKey('Payment', on_delete=models.SET_NULL, blank=True, null=True)
+
+    currently_delivered = False
+    recieved = False
+    recieved_refund = False
+    refunded = False
+    order_status = Status.Nonexistent
+
+
+    def _str_(self):
+        return self.user_account.username
+    
+    def item_received(self, input):
+        if input and order_status != Status.Nonexistent:
+            recieved = True
+        return recieved
+    
+    def item_refunded(self, input):
+        if input and order_status != Status.Nonexistent:
+            order_status = 0
+            refunded = True
+        return refunded
+    
+    def calculate_total_price(self):
+        if order_status != Status.Nonexistent:
+            return math.nan
+        items = self.items.all()
+        for item in items:
+            total = total + item.get_official_price()
+        if self.coupon:
+            total = total - self.coupon.amount
+        return total
+    
+    def get_status(self):
+        return self.order_status
+
+
+class Address(models.Model):
+    str_address = models.CharField(max_length=1000)
+    user_account = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    country = CountryField(multiple=False)
+    zip_code = models.CharField(max_length=1000)
+
+    def _str_(self):
+        return self.user_account.username
+    
 
 class Coupon(models.Model):
     value = models.CharField(max_length=100)
@@ -81,7 +157,7 @@ class UserGroup(models.Model):
     
     def _str_(self):
         return self.account_name
-    pass
+    
 
 
 class FriendGroup(models.Model):
@@ -96,6 +172,7 @@ class Payment(models.Model):
     user_act = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
 
     value = models.FloatField()
+    time = models.DateTimeField(auto_now_add=True)
 
     def _str_(self):
         return self.user_act.username
