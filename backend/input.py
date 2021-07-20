@@ -3,12 +3,23 @@ from django.forms.fields import EmailField
 from django.forms.widgets import Textarea
 from django_countries.fields import CountryField
 from django_countries.widgets import CountrySelectWidget
+import enum
+
+
+class Payment_Options(enum.Enum):
+    Stripe = 0
+    Paypal = 1
 
 class UserSearchForm(forms.Form):
     user = forms.CharField(required=False)
 
 class UseCoupon(forms.Form):
-    coupon_code = forms.CharField(widget=forms.TextInput())
+    coupon_code = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'Promo code',
+        'aria-label': 'Recipient\'s username',
+        'aria-describedby': 'basic-addon2'
+    }))
 
     def apply_coupon(self):
         pass
@@ -22,6 +33,13 @@ class OrderItem(forms.Form):
 class refundForm(forms.Form):
     code_to_refund = forms.CharField()
     send_email_line = forms.CharField(widget=Textarea())
+    description = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}))
+    email_address = forms.EmailField()
+
+
+class Payment(forms.Form):
+    stripe = forms.CharField(require=False)
+
 
 class PaymentProcess(forms.Form):
     addr = forms.CharField(required=False)
@@ -38,5 +56,7 @@ class PaymentProcess(forms.Form):
     set_bill_addr = forms.BooleanField(required=False)
     matching_bill_addr = forms.BooleanField(required=False)
 
+    using_shipping_default = False
+    using_billing_default = False
 
-    
+    payment_option = forms.ChoiceField(widget=forms.RadioSelect, choices=Payment_Options.choices)

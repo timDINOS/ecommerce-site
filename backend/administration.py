@@ -1,6 +1,7 @@
+from backend.input import OrderItem
 from django.contrib import admin
 
-from .models import AccountProfile
+from .models import AccountProfile, BuyItem
 
 
 class AdminRequests(admin.ModelAdmin):
@@ -15,6 +16,9 @@ class AdminRequests(admin.ModelAdmin):
                      'payment',
                      'coupon'
                      ]
+    list_display_links = ['user', 'shipping_address', 'billing_address', 'payment', 'coupon']
+    list_filter = ['ordered', 'being_delivered', 'recieved', 'refund_requested', 'refund_granted']
+    search_fields = ['user_username', 'item_name']
                      
 
 class AdminLocation(admin.ModelAdmin):
@@ -35,5 +39,6 @@ class AdminLocation(admin.ModelAdmin):
 
 admin.site.register(AccountProfile)
 admin.site.register(AdminLocation)
-
+admin.site.register(OrderItem)
+admin.site.register(BuyItem)
 
