@@ -44,12 +44,12 @@ class Payment(forms.Form):
 class PaymentProcess(forms.Form):
     addr = forms.CharField(required=False)
     sec_addr = forms.CharField(required=False)
-    loc = CountryField(blank_label='(selecg country)').formfield(required=False, widget=CountrySelectWidget(attrs={'class': 'custom-select d-block w-100'})))
+    loc = CountryField(blank_label='(selecg country)').formfield(required=False, widget=CountrySelectWidget(attrs={'class': 'custom-select d-block w-100'}))
     zip_code = forms.CharField(required=False)
 
     bill_addr = forms.CharField(required=False)
     sec_bill_addr = forms.CharField(required=False)
-    bill_loc = CountryField(blank_label='(selecg country)').formfield(required=False, widget=CountrySelectWidget(attrs={'class': 'custom-select d-block w-100'})))
+    bill_loc = CountryField(blank_label='(selecg country)').formfield(required=False, widget=CountrySelectWidget(attrs={'class': 'custom-select d-block w-100'}))
     bill_zip_code = forms.CharField(required=False)
     
     set_ship_addr = forms.BooleanField(required=False)

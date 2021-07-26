@@ -1,3 +1,4 @@
+from backend.input import OrderItem
 from django.db import models
 from django.conf import settings
 from django.db.models import Sum;
@@ -23,7 +24,7 @@ MAILING_MODES = (
 class AccountProfile(models.Model):
     my_user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     pay_with_click = models.BooleanField(default=False)
-    stripe_customer_id = models.CharField(max_length=100 blank=True null=True)
+    stripe_customer_id = models.CharField(max_length=100, blank=True, null=True)
 
     def _str_(self):
        return self.my_user
@@ -178,8 +179,15 @@ class Payment(models.Model):
         return self.user_act.username
 
 
+class Refund(models.Model):
+    order = models.ForeignKey(OrderItem, on_delete=models.CASCADE)
+    accepted = models.BooleanField(default=False)
+    email = models.EmailField()
 
-class sendReq(AccountProfile):
+    def _str_(self):
+        return f"{self.pk}"
+
+class createAcct(AccountProfile):
     def send(inst, created):
         if created:
             userprofile = AccountProfile.objects.create(user=inst)

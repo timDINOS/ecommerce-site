@@ -16,7 +16,7 @@ from django.views.generic import ListView, DetailView, View
 stripe_key = settings.STRIPE_SECRET_KEY
 
 from .input import UserSearchForm, UseCoupon, OrderItem, refundForm, Payment, PaymentProcess
-from .models import Item, BuyItem, MakeOrder, AccountProfile, Address, UserGroup, FriendGroup, Coupon
+from .models import Item, BuyItem, MakeOrder, AccountProfile, Address, UserGroup, FriendGroup, Coupon, Refund
 
 def create_code():
     code = ''.join(random.choices(string.ascii_lowercase + string.digits, k=30))
@@ -162,14 +162,23 @@ class CheckoutDesign(View):
             return redirect("core:order-summary")
 
 
+class PaymentView(View):
+    def get(self, *args, **kwargs):
+        order = OrderItem.objects.get(user=self.request.user, ordered=False)
+        if order.billing_address == True:
+            profile = self.request.user.profile
+            if profile.purchasing == True:
+                card_numbers = stripe.Customer.list_sources(profile.stripe_customer_id, limit=10, object="card_numbers")
+                cards = cards['data']
+            return render(self.request, "payment.html", {'order': order, 'DISPLAY_COUPON_FORM': False, 'STRIPE_PUBLIC_KEY': settings.STRIPE_PUBLIC_KEY, 'card': card_numbers[0]})
+        else:
+            messages.info(self.request, "This billing address is not recognized")
+            return redirect("core:checkout")
 
+    
 class HomeDesign(ListView):
     template_name = "home.html"
     model = Item
-
-class ItemSummary(DetailView):
-    model = Item
-    template_name = "product.html"
 
 class ViewOrder(View, LoginRequiredMixin):
     def obtainOrder(self, *args, **kwargs):
@@ -181,3 +190,104 @@ class ViewOrder(View, LoginRequiredMixin):
         except ObjectDoesNotExist:
             messages.warning(self.request, "This order does not exist")
             return redirect("/")
+
+
+class ItemSummary(DetailView):
+    model = Item
+    template_name = "product.html"
+
+
+@login_required
+def insert_item(slug, request):
+    ordered_item, created_item = OrderItem.objects.get_or_create(item=get_object_or_404(Item, slug=slug), user=request.user, ordered=False)
+    current_order = Order.objects.filter(user=request.user, ordered=False)
+    if current_order.exists():
+        order = current_order[0]
+        filtered = ordered_item.items.filter(item_slug=ordered_item.slug)
+        if filtered.exists():
+            num_of_items = num_of_items + 1
+            ordered_item.save()
+            messages.info(request, "We've just added one more item")
+            return redirect("core:order-summary")
+        else:
+            order.items.add(ordered_item)
+            messages.info(request, "This item has been added to your shopping cart")
+            return redirect("core:order-summary")
+    else:
+        date = timezone.now()
+        order = Order.objects.create(
+            user=request.user, date = date
+        )
+        current_order.items.add(ordered_item)
+        messages.info(request, "This item was added to your cart")
+        return redirect("core:order-summary")
+
+@login_required
+def remove_item(slug, request):
+    ordered_item = Order.objects.filter(user=requst.user, ordered=False)
+    if ordered_item.exists():
+        order = ordered_item[0]
+        if order.items.filter(item_slug=ordered_item.slug).exists():
+            item_order = OrderItem.objects.filter(item=item, user=request.user, ordered=False)
+            item_order = item_order[0]
+            order.items.remove(item_order)
+            messages.info(request, "This item was removed from your shopping cart")
+            return redirect("core:order-summary")
+        else:
+            messages.info(request, "This item is not in your cart")
+            return redirect("core:product", slug=slug)
+    else:
+        messages.infor(request, "This item doesn't exist")
+        return redirect("core:product", slug=slug)
+
+
+def obtain_coupon(code, request):
+    try:
+         return UseCoupon(self.request.POST or None)
+    except ObjectDoesNotExist:
+        messages.info(request, "This item does not exist")
+        return redirect("core:checkout")
+
+
+class ApplyCoupon:
+    def post(self, *args, **kwargs):
+        newForm = UseCoupon(self.request.POST or None)
+        if newForm.is_valid():
+            try:
+                found_code = OrderItem.objects.get('code')
+                order_results = OrderItem.objects.get(user=user.request.user, ordered=False)
+                order_results.coupon = obtain_coupon(found_code, self.request)
+                order_results.save()
+                messages.info(self.request, "Added Coupon to your account")
+                return redirect("core:checkout")
+            except ObjectDoesNotExist:
+                messages.info(self.request, "Order does not exist")
+                return redirect("core:checkout")
+
+
+class RequestNewRefund:
+    def get(self, *args, **kwargs):
+        return render(self.request, "request_refund.html", {'form': refundForm()})
+    
+    def post(self, *args, **kwargs):
+        completed_form = refundForm(self.request.POST)
+        if completed_form.is_valid():
+            code = completed_form.cleaned_data.get('code')
+            msg = form.cleaned_data.get('message')
+            email = form.cleaned_data.get('email')
+
+            try:
+                order = OrderItem.objects.get(code=code)
+                order.refund_submitted = True
+                order.save()
+
+                obtained_refund = Refund()
+                refund.order = order
+                refund.email = email
+                refund.save()
+
+                messages.info(self.request, "Your request has been submitted")
+                return redirect("core:request-refund")
+            except ObjectDoesNotExist:
+                messages.info(self.request, "This order does not exist")
+                return redirect("core:request-refund")
