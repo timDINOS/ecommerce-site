@@ -175,6 +175,76 @@ class PaymentView(View):
             messages.info(self.request, "This billing address is not recognized")
             return redirect("core:checkout")
 
+    def post(self, *args, **kwargs):
+        order = BuyItem.objects.get(user=self.request.user, ordered=False)
+        PayForm = PaymentProcess(self.request.POST)
+        profile = AccountProfile.objects.get(user=self.request.user)
+        if PayForm.is_valid():
+            token = PayForm.cleaned_data.get('stripeToken')
+            save_info = PayForm.cleaned_data.get('save')
+            default = PayForm.cleaned_data.get('use_default')
+
+            if save_info:
+                if profile.stripe_customer_id and profile.stripe_customer_id is not None:
+                    customer = stripe.Customer.retrieve(profile.stripe_customer_id)
+                    customer.sources.create(source=token)
+                else:
+                    customer = stripe.Customer.create(email=self.request.user.email)
+                    customer.sources.create(source=token)
+                    profile.stripe_customer_id = customer["id"]
+                    profile.purchasing = True
+                    profile.save()
+            
+            amount_spent = order.get_official_price()
+
+            try:
+                source = ""
+                if default or save:
+                    source = profile.stripe_customer_id
+                else:
+                    source = token
+                charge = stripe.Charge.create(amount=amount_spent, currency="usd", source=source)
+
+                payment = Payment()
+                payment.user = self.request.user
+                payment.amount = order.get_official_price()
+                payment.stripe_charge_id = charge["id"]
+                payment.save()
+
+                ordered_items = order.items.all()
+                ordered_items.update(ordered=True)
+                for ordered_item in ordered_items:
+                    ordered_item.save()
+
+                order.payment = payment
+                order.code = create_code()
+                order.ordered = True
+                order.save()
+
+                messages.info(self.request, "The Purchase has been authorized")
+                return redirect("/")
+            
+            except stripe.error.CardError as e:
+                error = e.json_body.get('error' {})
+                messages.info(self.request, f"{error.get('message')}")
+                return redirect("/")
+            
+            except stripe.error.InvalidRequestError as e:
+                print(e)
+                messages.info(self.request, "The given parameters are invalid")
+                return redirect("/")
+            
+            except stripe.error.AuthenticationError as e:
+                messages.info(self.request, "Not Authenticated")
+                return redirect("/")
+            
+            except stripe.error.StripeError as e:
+                messages.info(self.request, "Something went wrong. Please Try Again")
+                return redirect("/")
+        
+        messages.info(self.request, "Invalid data submitted")
+        return redirect("/payment/stripe/")
+
     
 class HomeDesign(ListView):
     template_name = "home.html"

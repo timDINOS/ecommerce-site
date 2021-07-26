@@ -5,6 +5,8 @@ from django_countries.fields import CountryField
 from django_countries.widgets import CountrySelectWidget
 import enum
 
+from views import ApplyCoupon
+
 
 class Payment_Options(enum.Enum):
     Stripe = 0
@@ -22,7 +24,7 @@ class UseCoupon(forms.Form):
     }))
 
     def apply_coupon(self):
-        pass
+        ApplyCoupon()
 
 class OrderItem(forms.Form):
     billing_address = forms.CharField(required=False)
