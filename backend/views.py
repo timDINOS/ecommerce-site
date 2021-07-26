@@ -225,7 +225,7 @@ class PaymentView(View):
                 return redirect("/")
             
             except stripe.error.CardError as e:
-                error = e.json_body.get('error' {})
+                error = e.json_body.get('error',{})
                 messages.info(self.request, f"{error.get('message')}")
                 return redirect("/")
             
