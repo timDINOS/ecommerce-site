@@ -15,3 +15,17 @@ def friends_list(request):
     friends = p.friends.all()
     return render(request, "users/friends_list.html", {'friends': friends})
 
+@login_required
+def users_list(request):
+    users = MyProfile.objects.exclude(user=request.user)
+    send_req = FriendRequest.objects.filter(from_user=request.user)
+    my_friends = request.user.profile.friends.all()
+    sent_rec = []
+    friends = []
+    for friend in my_friends:
+        friend = user.friends.all()
+        for f in friend:
+            if f in friends:
+                friend += friend.exclude(user=f.user)
+        my_friends += friend
+        
