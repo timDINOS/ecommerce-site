@@ -28,4 +28,19 @@ def users_list(request):
             if f in friends:
                 friend += friend.exclude(user=f.user)
         my_friends += friend
-        
+    for i in my_friends:
+        if i in friends:
+            friends.remove(i)
+    if request.user.profile in friends:
+        friends.remove(request.user.profile)
+    new_list = random.sample(list(users), min(len(list(users)), 10))
+    for n in new_list:
+        if n in friends:
+            new_list.remove(n)
+    for sent in send_req:
+        sent_rec.append(sent.to_user)
+    return render(request, {'users': friends, 'sent': sent_rec})
+
+def get_friends_list(request):
+    return render(request, {'friends': request.user.profile.friends.all()})
+
