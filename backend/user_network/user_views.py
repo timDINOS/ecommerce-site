@@ -2,7 +2,7 @@ from backend.user_network.user_models import MyProfile, FriendRequest
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from backend.user_network.user_forms import UserRegisterForm, ProfileUpdateForm, UserUpdateForm
@@ -43,4 +43,27 @@ def users_list(request):
 
 def get_friends_list(request):
     return render(request, {'friends': request.user.profile.friends.all()})
+
+@login_required
+def send_friend_req(request, id):
+    user = get_object_or_404(User, id=id)
+    freq = FriendRequest.objects.get_or_create(from_user=request.user, to_user = user)
+    return HttpResponseRedirect('/users/{}'.format(user.profile.slug))
+
+@login_required
+def reject_req(request, id):
+    user = get_object_or_404(User, id=id)
+    freq = FriendRequest.objects.filter(from_user = request.user, to_user=user)
+    freq = freq.first()
+    freq.delete()
+    return HttpResponseRedirect('/users/{}'.format(user.profile.slug))
+
+
+def accept_req(request, id):
+    from_user = get_object_or_404(User, id=id)
+    freq = FriendRequest.objects.filter(from_user = request.user, to_user=user)
+    freq = freq.first()
+    freq.to_user.profile.friends.add(from_user.profile)
+    from_user.profile.friends.add(freq.profile)
+    
 
