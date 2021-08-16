@@ -59,11 +59,17 @@ def reject_req(request, id):
     return HttpResponseRedirect('/users/{}'.format(user.profile.slug))
 
 
+@login_required
 def accept_req(request, id):
     from_user = get_object_or_404(User, id=id)
     freq = FriendRequest.objects.filter(from_user = request.user, to_user=user)
     freq = freq.first()
     freq.to_user.profile.friends.add(from_user.profile)
     from_user.profile.friends.add(freq.profile)
-    
+
+@login_required
+def search_users(request):
+    obj_search_list = User.objects.filter(username_icontins=request.GET.get('q'))
+    return render(request, "users/search_users.html", {"users": obj_search_list})
+
 
