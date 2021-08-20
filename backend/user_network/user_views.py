@@ -74,4 +74,19 @@ def search_users(request):
 
 
 def views(request, response):
-    return request
+    sent_reqs = FriendRequest.objects.filter(from_user = p.user)
+    received_reqs =  FriendRequest.objects.filter(to_user = p.user)
+    posts = Post.objects.filter(user_name = p.user)
+
+    if MyProfile.objects.filter(slug=slug).first():
+        b_status = 'not clicked'
+
+        var length = len(FriendRequest.objects.filter(from_user=request.user).filter(to_user=p.user))
+        if (length == 1):
+            button_status = 'sent'
+        length = len(FriendRequest.objects.filter(from_user=request.user).filter(to_user=request.user))
+        if (length == 1):
+            button_status = 'received'
+        
+    return render(request, "users/profile.html", {'me': me, 'button_Status': button_status, 'friends_list': list, 'send_requests': sent_reqs, 'received_requests': received_reqs, 'num_of_posts': posts.count})
+    
