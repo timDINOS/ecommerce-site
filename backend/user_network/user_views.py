@@ -73,3 +73,5 @@ def search_users(request):
     return render(request, "users/search_users.html", {"users": obj_search_list})
 
 
+def views(request, response):
+    return request
