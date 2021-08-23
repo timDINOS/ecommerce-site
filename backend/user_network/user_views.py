@@ -89,4 +89,27 @@ def views(request, response):
             button_status = 'received'
         
     return render(request, "users/profile.html", {'me': me, 'button_Status': button_status, 'friends_list': list, 'send_requests': sent_reqs, 'received_requests': received_reqs, 'num_of_posts': posts.count})
+
+    @login_required
+    def profile_change(request):
+        if request.method != 'POST':
+           return render(request, 'users/profile_change.html', {'user': UserUpdateForm(instance=request.user), 'profile': ProfileUpdateForm(instance=request.user),})
+        else:
+            if (UserUpdateForm(request.POST, instance=request.user).is_valid() and ProfileUpdateForm(request.POST and request.FILES, instance=request.user).is_valid()):
+                UserUpdateForm(request.POST, instance=request.user).save()
+                ProfileUpdateForm(request.POST, request.FILES, instance=request.user).save()
+                return render('my_profile')
     
+
+    def register_me(request):
+        if request.method == 'POST' and UserRegisterForm(request.POST).is_valid():
+            UserRegisterForm(request.POST).save()
+            return render('login_page')
+        if request.method != 'POST' and UserRegisterForm(request.POST).is_valid():
+            return render(request, 'users/register.html', {'register': UserRegisterForm(request.POST)})
+        else:
+            return render(request, 'users/register.html', {'register': UserRegisterForm()})
+    
+    
+
+
